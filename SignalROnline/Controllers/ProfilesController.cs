@@ -34,7 +34,15 @@ namespace SignalROnline.Controllers
 				return true;
 			}
 		}
-		
+		[HttpGet("getallusers")]
+		public async Task<ActionResult<List<string>>> GetAllUsers()
+		{
+			List<User> userlist = await _context.Users.ToListAsync();
+			List<string> nicknamelist = userlist.Select(user => user.Nickname).ToList();
+			return nicknamelist;
+		}
+
+
 		[HttpPost("register")]
 		public async Task<ActionResult<User>> Register(string nickname, Icon icon)
 		{

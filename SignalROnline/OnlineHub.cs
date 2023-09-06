@@ -13,6 +13,9 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SignalROnline.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace SignalROnline
 {
@@ -20,9 +23,14 @@ namespace SignalROnline
 	public class OnlineHub : Hub
 	{
 		static ConcurrentDictionary<string, string> connectedUsers = new ConcurrentDictionary<string, string>();
-		
 
-		
+		private readonly ApplicationDbContext _Context; // Replace YourDbContext with your actual DbContext class
+
+		public OnlineHub(ApplicationDbContext Context)
+		{
+			_Context = Context;
+		}
+
 		public async override Task OnConnectedAsync()
 		{
 
@@ -38,24 +46,27 @@ namespace SignalROnline
 			var useridClaim = jwtToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.NameIdentifier);
 			string username = usernameClaim?.Value;
 			int userid = int.Parse(useridClaim.Value);
-			Context.Items["username"] = username;
+			
 			Context.Items["userid"] = userid;
+			var profile = _Context.Users.FirstOrDefault(p => p.Username == username);
+			string nickname = profile.Nickname;
 
-
-			if (!connectedUsers.ContainsKey(username))
+			Context.Items["nickname"] = nickname;
+			
+			if (!connectedUsers.ContainsKey(nickname))
 			{
-				connectedUsers.TryAdd(username, username);
+				connectedUsers.TryAdd(nickname, Context.ConnectionId);
 				await Clients.All.SendAsync("UsersList", connectedUsers.Values);
 			}
-			await Clients.All.SendAsync("UsersID", userid);
-			await Clients.All.SendAsync("UserConnected", Context.ConnectionId);
-			await Clients.All.SendAsync("UsersList", connectedUsers.Values);
+			await Clients.Caller.SendAsync("MyNickname", nickname);
+			await Clients.Caller.SendAsync("UserConnected", Context.ConnectionId);
+			await Clients.All.SendAsync("UsersList", connectedUsers);
 		}
 
 
 		public override async Task OnDisconnectedAsync(Exception exception)
 		{
-			string myusername = Context.Items["username"].ToString(); 
+			string myusername = Context.Items["nickname"].ToString(); 
 
 			if (connectedUsers.ContainsKey(myusername))
 			{

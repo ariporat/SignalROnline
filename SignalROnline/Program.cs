@@ -43,7 +43,8 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
 		ValidateAudience = false,
 		ValidateIssuer = false,
 		IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-				builder.Configuration.GetSection("AppSettings:Token").Value!))
+				builder.Configuration.GetSection("AppSettings:Token").Value!)),
+		 ValidateLifetime = true,
 	};
 
 	options.Events = new JwtBearerEvents
